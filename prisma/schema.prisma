@@ -1,0 +1,301 @@
+// Prisma schema for BOK MyHome — real estate sales & resale platform
+// SQLite for zero-config local/dev use; swap the datasource provider to
+// "postgresql" and point DATABASE_URL at a real instance for production.
+//
+// SQLite has no native enum type, so fields that would be enums are plain
+// Strings constrained at the application layer — see src/lib/constants.ts
+// for the canonical value lists (Role, PropertyType, TransactionType, etc).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Users, roles & agents
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         String   @default("BUYER") // SUPER_ADMIN | ADMIN | AGENT | BUYER
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agentProfile Agent?
+  favorites    Favorite[]
+  leads        Lead[]        @relation("LeadOwner")
+  activityLogs ActivityLog[]
+}
+
+model Agent {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoUrl    String?
+  designation String?
+  bio         String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  properties Property[]
+  leads      Lead[]
+}
+
+// ---------------------------------------------------------------------------
+// Locations
+// ---------------------------------------------------------------------------
+
+model Location {
+  id          String  @id @default(cuid())
+  city        String
+  locality    String
+  pincode     String?
+  slug        String  @unique
+  latitude    Float?
+  longitude   Float?
+  description String?
+
+  properties Property[]
+
+  @@index([city])
+}
+
+// ---------------------------------------------------------------------------
+// Properties
+// ---------------------------------------------------------------------------
+
+model Property {
+  id          String @id @default(cuid())
+  propertyId  String @unique // human-facing e.g. BOK-10234
+  slug        String @unique
+  title       String
+  description String
+
+  propertyType    String // PropertyType
+  transactionType String // TransactionType
+  status          String // PropertyStatus (ready to move / under construction / new launch / resale)
+  listingStatus   String  @default("PENDING_VERIFICATION") // ListingStatus
+  featured        Boolean @default(false)
+  premium         Boolean @default(false)
+  verified        Boolean @default(false)
+
+  price           Float
+  priceNegotiable Boolean @default(false)
+  pricePerSqft    Float?
+
+  bedrooms     Int?
+  bathrooms    Int?
+  builtupArea  Float?
+  carpetArea   Float?
+  floor        Int?
+  totalFloors  Int?
+  propertyAge  Int?
+  facing       String? // Facing
+  furnishing   String? // Furnishing
+  parking      Int?      @default(0)
+  ownership    String?
+  possessionOn DateTime?
+
+  addressLine String?
+  location    Location @relation(fields: [locationId], references: [id])
+  locationId  String
+
+  agent   Agent?  @relation(fields: [agentId], references: [id])
+  agentId String?
+
+  views     Int      @default(0)
+  enquiries Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images       PropertyImage[]
+  amenities    PropertyAmenity[]
+  documents    PropertyDocument[]
+  leads        Lead[]
+  favorites    Favorite[]
+  appointments Appointment[]
+  inquiries    Inquiry[]
+
+  @@index([propertyType])
+  @@index([transactionType])
+  @@index([listingStatus])
+  @@index([locationId])
+  @@index([price])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  url        String
+  alt        String?
+  isCover    Boolean  @default(false)
+  sortOrder  Int      @default(0)
+
+  @@index([propertyId])
+}
+
+model PropertyDocument {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  name       String
+  url        String
+  createdAt  DateTime @default(now())
+}
+
+model Amenity {
+  id   String  @id @default(cuid())
+  name String  @unique
+  icon String?
+
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  amenityId  String
+
+  @@id([propertyId, amenityId])
+}
+
+// ---------------------------------------------------------------------------
+// Leads / CRM
+// ---------------------------------------------------------------------------
+
+model Lead {
+  id      String @id @default(cuid())
+  name    String
+  phone   String
+  email   String?
+  message String?
+  source  String // LeadSource
+  status  String  @default("NEW") // LeadStatus
+
+  property   Property? @relation(fields: [propertyId], references: [id])
+  propertyId String?
+
+  agent   Agent?  @relation(fields: [agentId], references: [id])
+  agentId String?
+
+  user   User?   @relation("LeadOwner", fields: [userId], references: [id])
+  userId String?
+
+  preferredContactMethod String?
+  preferredVisitDate     DateTime?
+  nextFollowUp           DateTime?
+  notes                  LeadNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([source])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Appointment {
+  id            String   @id @default(cuid())
+  property      Property @relation(fields: [propertyId], references: [id])
+  propertyId    String
+  name          String
+  phone         String
+  preferredDate DateTime
+  preferredTime String
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+}
+
+model Inquiry {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  type       String // GET_PRICE | CHECK_AVAILABILITY | MORE_INFO
+  name       String
+  phone      String
+  email      String?
+  createdAt  DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Favorites & comparisons
+// ---------------------------------------------------------------------------
+
+model Favorite {
+  id         String   @id @default(cuid())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+  sessionId  String?
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+}
+
+// ---------------------------------------------------------------------------
+// Content: blog / SEO
+// ---------------------------------------------------------------------------
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  posts BlogPost[]
+}
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  excerpt         String
+  content         String
+  featuredImage   String?
+  metaTitle       String?
+  metaDescription String?
+  author          String
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+}
+
+// ---------------------------------------------------------------------------
+// Notifications & logs
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  action    String
+  meta      String?
+  createdAt DateTime @default(now())
+}

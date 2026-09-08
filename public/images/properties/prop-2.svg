@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 320 213">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16244f"/>
+      <stop offset="1" stop-color="#2a4079"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d4b06a"/>
+      <stop offset="1" stop-color="#f6f2e9"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="213" fill="url(#bg)"/>
+  <g transform="translate(0,-6)"><path d="M50 180 L50 130 L120 90 L120 130 L200 130 L240 100 L280 130 L280 180 Z" fill="none" stroke="url(#g)" stroke-width="3" opacity="0.55"/></g>
+  <text x="300" y="196" text-anchor="end" font-family="Georgia, serif" font-size="13" fill="#f6f2e9" opacity="0.9">BOK MyHome</text>
+  <text x="300" y="208" text-anchor="end" font-family="Arial, sans-serif" font-size="7" letter-spacing="2" fill="#d4b06a">VILLA</text>
+</svg>
