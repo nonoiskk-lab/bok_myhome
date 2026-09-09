@@ -18,8 +18,14 @@ export default async function AdminLeadsPage() {
 
   return (
     <div>
-      <h1 className="font-serif text-2xl text-navy-950">Leads / CRM</h1>
-      <p className="mt-1 text-sm text-slate-600">{leads.length} leads captured across the site.</p>
+      <h1 className="font-serif text-2xl text-navy-950">All Enquiries</h1>
+      <p className="mt-1 text-sm text-slate-600">
+        {leads.length} requirements captured across the site. Open the{" "}
+        <Link href="/admin/crm" className="text-gold-600 hover:underline">
+          CRM
+        </Link>{" "}
+        for the customer-centric view.
+      </p>
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-navy-950/8 bg-white">
         <table className="w-full min-w-[860px] text-sm">
@@ -38,7 +44,13 @@ export default async function AdminLeadsPage() {
             {leads.map((lead) => (
               <tr key={lead.id} className="border-b border-navy-950/8 last:border-0">
                 <td className="p-4">
-                  <p className="font-medium text-navy-950">{lead.name}</p>
+                  {lead.customerId ? (
+                    <Link href={`/admin/crm/${lead.customerId}`} className="font-medium text-navy-950 hover:text-gold-600">
+                      {lead.name}
+                    </Link>
+                  ) : (
+                    <p className="font-medium text-navy-950">{lead.name}</p>
+                  )}
                   <p className="text-xs text-slate-400">{lead.phone}</p>
                 </td>
                 <td className="p-4 text-slate-600">
@@ -58,11 +70,7 @@ export default async function AdminLeadsPage() {
                   <LeadStatusSelect id={lead.id} status={lead.status} />
                 </td>
                 <td className="p-4">
-                  <LeadSyncStatus
-                    id={lead.id}
-                    googleSheetStatus={lead.googleSheetStatus}
-                    whatsappStatus={lead.whatsappStatus}
-                  />
+                  <LeadSyncStatus id={lead.id} whatsappStatus={lead.whatsappStatus} />
                 </td>
                 <td className="p-4">
                   <div className="flex gap-2">

@@ -137,11 +137,16 @@ export const LEAD_STATUSES = [
   "NEW",
   "CONTACTED",
   "INTERESTED",
+  "REQUIREMENT_CONFIRMED",
+  "QUOTATION_SENT",
   "SITE_VISIT_SCHEDULED",
   "SITE_VISIT_COMPLETED",
   "NEGOTIATION",
+  "FOLLOW_UP",
+  "CONVERTED",
   "BOOKED",
   "SOLD",
+  "WON",
   "NOT_INTERESTED",
   "LOST",
 ] as const;
@@ -151,12 +156,61 @@ export const LEAD_STATUS_LABELS: Record<LeadStatusValue, string> = {
   NEW: "New",
   CONTACTED: "Contacted",
   INTERESTED: "Interested",
+  REQUIREMENT_CONFIRMED: "Requirement Confirmed",
+  QUOTATION_SENT: "Quotation Sent",
   SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
   SITE_VISIT_COMPLETED: "Site Visit Completed",
   NEGOTIATION: "Negotiation",
+  FOLLOW_UP: "Follow-up",
+  CONVERTED: "Converted",
   BOOKED: "Booked",
   SOLD: "Sold",
+  WON: "Won",
   NOT_INTERESTED: "Not Interested",
+  LOST: "Lost",
+};
+
+// Grouping of statuses used by CRM dashboard counters and filters.
+export const WON_STATUSES: readonly LeadStatusValue[] = ["CONVERTED", "WON", "BOOKED", "SOLD"];
+export const LOST_STATUSES: readonly LeadStatusValue[] = ["LOST", "NOT_INTERESTED"];
+
+export const LEAD_PRIORITIES = ["HIGH", "MEDIUM", "LOW"] as const;
+export type LeadPriorityValue = (typeof LEAD_PRIORITIES)[number];
+export const LEAD_PRIORITY_LABELS: Record<LeadPriorityValue, string> = {
+  HIGH: "🔴 High",
+  MEDIUM: "🟡 Medium",
+  LOW: "🟢 Low",
+};
+
+export const CUSTOMER_TYPES = ["INDIVIDUAL", "BUSINESS"] as const;
+export type CustomerTypeValue = (typeof CUSTOMER_TYPES)[number];
+
+export const FOLLOWUP_STATUSES = ["PENDING", "DONE", "MISSED"] as const;
+export type FollowupStatusValue = (typeof FOLLOWUP_STATUSES)[number];
+
+export const ACTIVITY_TYPES = [
+  "ENQUIRY_RECEIVED",
+  "REQUIREMENT_ADDED",
+  "STATUS_CHANGED",
+  "PRIORITY_CHANGED",
+  "CONTACTED",
+  "FOLLOWUP_SCHEDULED",
+  "FOLLOWUP_COMPLETED",
+  "NOTE_ADDED",
+  "CONVERTED",
+  "LOST",
+] as const;
+export type ActivityTypeValue = (typeof ACTIVITY_TYPES)[number];
+export const ACTIVITY_TYPE_LABELS: Record<ActivityTypeValue, string> = {
+  ENQUIRY_RECEIVED: "Enquiry received",
+  REQUIREMENT_ADDED: "Requirement added",
+  STATUS_CHANGED: "Status changed",
+  PRIORITY_CHANGED: "Priority changed",
+  CONTACTED: "Customer contacted",
+  FOLLOWUP_SCHEDULED: "Follow-up scheduled",
+  FOLLOWUP_COMPLETED: "Follow-up completed",
+  NOTE_ADDED: "Note added",
+  CONVERTED: "Converted",
   LOST: "Lost",
 };
 

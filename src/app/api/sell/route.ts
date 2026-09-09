@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/format";
 import { PROPERTY_TYPES } from "@/lib/constants";
 import { normalizeIndianMobile } from "@/lib/phone";
+import { captureLead } from "@/lib/crm";
 import { syncLead } from "@/lib/leads/sync";
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB per image, base64-encoded client-side
@@ -99,19 +100,26 @@ export async function POST(request: Request) {
     },
   });
 
-  const lead = await prisma.lead.create({
-    data: {
+  let result;
+  try {
+    result = await captureLead({
       name: data.name,
       phone: phone.digits,
       email: data.email || undefined,
       message: `Seller submission for ${title} — expected price ₹${data.expectedPrice}.`,
+      budget: data.expectedPrice,
       source: "SELLER_SUBMISSION",
-      status: "NEW",
       propertyId: property.id,
-    },
-  });
+    });
+  } catch (err) {
+    console.error("[api/sell] failed to save lead for new property listing:", err);
+    return NextResponse.json(
+      { error: "Something went wrong while submitting your details. Please try again." },
+      { status: 500 }
+    );
+  }
 
-  after(() => syncLead(lead.id));
+  after(() => syncLead(result.leadId));
 
   return NextResponse.json({ ok: true, propertyId: property.propertyId }, { status: 201 });
 }

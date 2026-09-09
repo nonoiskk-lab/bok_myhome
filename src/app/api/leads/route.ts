@@ -3,11 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { LEAD_SOURCES } from "@/lib/constants";
 import { normalizeIndianMobile } from "@/lib/phone";
+import { captureLead } from "@/lib/crm";
 import { syncLead } from "@/lib/leads/sync";
-
-// A double-click or a repeated request from a flaky connection shouldn't
-// create two leads — but a genuinely new enquiry a few minutes later should.
-const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
 
 const leadSchema = z.object({
   name: z.string().trim().min(2, "Please enter your name").max(100),
@@ -37,42 +34,39 @@ export async function POST(request: Request) {
     );
   }
 
-  const existing = await prisma.lead.findFirst({
-    where: {
-      phone: phone.digits,
-      source: data.source,
-      propertyId: data.propertyId || undefined,
-      createdAt: { gte: new Date(Date.now() - DUPLICATE_WINDOW_MS) },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (existing) {
-    return NextResponse.json({ ok: true, leadId: existing.id }, { status: 200 });
-  }
-
-  const lead = await prisma.lead.create({
-    data: {
+  let result;
+  try {
+    result = await captureLead({
       name: data.name,
       phone: phone.digits,
       email: data.email || undefined,
       message: data.message || undefined,
       source: data.source,
-      status: data.source === "SITE_VISIT_REQUEST" ? "SITE_VISIT_SCHEDULED" : "NEW",
       propertyId: data.propertyId || undefined,
       preferredContactMethod: data.preferredContactMethod || undefined,
       preferredVisitDate: data.preferredVisitDate ? new Date(data.preferredVisitDate) : undefined,
-    },
-  });
+    });
+  } catch (err) {
+    console.error("[api/leads] failed to save lead:", err);
+    return NextResponse.json(
+      { error: "Something went wrong while submitting your details. Please try again." },
+      { status: 500 }
+    );
+  }
 
-  if (data.propertyId) {
+  if (!result.duplicate && data.propertyId) {
     await prisma.property.update({
       where: { id: data.propertyId },
       data: { enquiries: { increment: 1 } },
     });
   }
 
-  after(() => syncLead(lead.id));
+  if (!result.duplicate) {
+    after(() => syncLead(result.leadId));
+  }
 
-  return NextResponse.json({ ok: true, leadId: lead.id }, { status: 201 });
+  return NextResponse.json(
+    { ok: true, leadId: result.leadId, customerId: result.customerId },
+    { status: result.duplicate ? 200 : 201 }
+  );
 }

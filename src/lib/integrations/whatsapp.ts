@@ -1,4 +1,8 @@
-import type { SyncResult } from "./googleSheets";
+export type SyncStatus = "SUCCESS" | "FAILED" | "NOT_CONFIGURED";
+export interface SyncResult {
+  status: SyncStatus;
+  error?: string;
+}
 
 interface LeadNotification {
   name: string;

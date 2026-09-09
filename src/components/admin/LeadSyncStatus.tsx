@@ -19,18 +19,10 @@ function Badge({ label, status }: { label: string; status: string }) {
   );
 }
 
-export function LeadSyncStatus({
-  id,
-  googleSheetStatus,
-  whatsappStatus,
-}: {
-  id: string;
-  googleSheetStatus: string;
-  whatsappStatus: string;
-}) {
+export function LeadSyncStatus({ id, whatsappStatus }: { id: string; whatsappStatus: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const needsRetry = googleSheetStatus === "FAILED" || whatsappStatus === "FAILED";
+  const needsRetry = whatsappStatus === "FAILED";
 
   async function retry() {
     setLoading(true);
@@ -44,10 +36,7 @@ export function LeadSyncStatus({
 
   return (
     <div className="flex flex-col items-start gap-1.5">
-      <div className="flex flex-wrap gap-1.5">
-        <Badge label="Sheet" status={googleSheetStatus} />
-        <Badge label="WhatsApp" status={whatsappStatus} />
-      </div>
+      <Badge label="WhatsApp" status={whatsappStatus} />
       {needsRetry && (
         <button
           type="button"

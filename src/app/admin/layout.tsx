@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Building2, Users, Home } from "lucide-react";
+import { LayoutDashboard, Building2, Users, ClipboardList, Home } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { COMPANY } from "@/lib/constants";
 import { LogoutButton } from "@/components/admin/LogoutButton";
@@ -8,7 +8,8 @@ import { LogoutButton } from "@/components/admin/LogoutButton";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/properties", label: "Properties", icon: Building2 },
-  { href: "/admin/leads", label: "Leads / CRM", icon: Users },
+  { href: "/admin/crm", label: "CRM", icon: Users },
+  { href: "/admin/leads", label: "All Enquiries", icon: ClipboardList },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
