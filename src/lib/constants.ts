@@ -179,8 +179,8 @@ export const AMENITIES_LIST = [
 export const COMPANY = {
   name: "BOK MyHome",
   tagline: "Find a Property You'll Love.",
-  phone: "+91 90000 00000",
-  whatsapp: "919000000000",
+  phone: "+91 98352 66017",
+  whatsapp: "919835266017",
   email: "hello@bokmyhome.com",
   city: "Dhanbad",
   address: "Bank More, Dhanbad, Jharkhand 826001",
