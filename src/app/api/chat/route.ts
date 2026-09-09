@@ -111,7 +111,9 @@ export async function POST(req: Request) {
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          buffer += decoder.decode(value, { stream: true });
+          // Gemini's SSE frames are separated by "\r\n\r\n" — normalize to "\n\n"
+          // before splitting so the parser below doesn't miss every frame.
+          buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
 
           let sepIndex: number;
           while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
