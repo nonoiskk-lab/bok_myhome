@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { buildChatContext } from "@/lib/chat/retrieval";
 import { COMPANY } from "@/lib/constants";
 
@@ -6,6 +5,8 @@ import { COMPANY } from "@/lib/constants";
 export const runtime = "nodejs";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You are Riya, the friendly virtual assistant for ${COMPANY.name}, a real estate agency in ${COMPANY.city}, Jharkhand, India.
 
@@ -23,7 +24,7 @@ What you're grounded in:
 - If the customer wants to sell their own property, direct them to the "Sell Your Property" page or offer to take their number for a callback.`;
 
 export async function POST(req: Request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return new Response(
       `Maaf kijiye, chat assistant abhi activate nahi hua hai. Kripya seedhe humein call ya WhatsApp karein: ${COMPANY.phone}`,
@@ -60,43 +61,85 @@ export async function POST(req: Request) {
       "Live property data is temporarily unavailable. Answer generally, be honest that you can't pull exact listings right now, and suggest contacting the team directly.";
   }
 
-  const client = new Anthropic({ apiKey });
+  const geminiContents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
   const encoder = new TextEncoder();
 
+  let upstream: Response;
   try {
-    const stream = client.messages.stream({
-      model: "claude-sonnet-5",
-      max_tokens: 500,
-      system: `${SYSTEM_PROMPT}\n\nCurrent data (use only this for specifics):\n${context}`,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    });
-
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const event of stream) {
-            if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-              controller.enqueue(encoder.encode(event.delta.text));
-            }
-          }
-        } catch {
-          controller.enqueue(
-            encoder.encode(`\n\nConnection interrupted — kripya dobara try karein.`)
-          );
-        } finally {
-          controller.close();
-        }
-      },
-      cancel() {
-        stream.abort();
-      },
-    });
-
-    return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    upstream = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: geminiContents,
+          systemInstruction: {
+            parts: [{ text: `${SYSTEM_PROMPT}\n\nCurrent data (use only this for specifics):\n${context}` }],
+          },
+          generationConfig: {
+            maxOutputTokens: 500,
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        }),
+      }
+    );
   } catch {
     return new Response(
       `Abhi thoda technical issue aa raha hai. Kripya thodi der baad try karein ya humein call karein: ${COMPANY.phone}`,
       { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } }
     );
   }
+
+  if (!upstream.ok || !upstream.body) {
+    return new Response(
+      `Abhi thoda technical issue aa raha hai. Kripya thodi der baad try karein ya humein call karein: ${COMPANY.phone}`,
+      { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } }
+    );
+  }
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+
+  const readable = new ReadableStream({
+    async start(controller) {
+      let buffer = "";
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let sepIndex: number;
+          while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+            const frame = buffer.slice(0, sepIndex);
+            buffer = buffer.slice(sepIndex + 2);
+            const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+            if (!dataLine) continue;
+            const jsonStr = dataLine.slice(6).trim();
+            if (!jsonStr) continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (typeof text === "string") controller.enqueue(encoder.encode(text));
+            } catch {
+              // Skip a malformed SSE frame rather than aborting the whole reply.
+            }
+          }
+        }
+      } catch {
+        controller.enqueue(encoder.encode(`\n\nConnection interrupted — kripya dobara try karein.`));
+      } finally {
+        controller.close();
+      }
+    },
+    cancel() {
+      reader.cancel().catch(() => {});
+    },
+  });
+
+  return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
