@@ -1,17 +1,18 @@
 // Prisma schema for BOK MyHome — real estate sales & resale platform
-// SQLite for zero-config local/dev use; swap the datasource provider to
-// "postgresql" and point DATABASE_URL at a real instance for production.
+// PostgreSQL (Supabase) datasource, used for both local dev and production.
 //
-// SQLite has no native enum type, so fields that would be enums are plain
-// Strings constrained at the application layer — see src/lib/constants.ts
-// for the canonical value lists (Role, PropertyType, TransactionType, etc).
+// Fields that would naturally be enums are kept as plain Strings —
+// constrained at the application layer — since this schema started on
+// SQLite (no native enum support) and there's no reason to introduce a migration
+// just to add native enums now; see src/lib/constants.ts for the canonical
+// value lists (Role, PropertyType, TransactionType, etc).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

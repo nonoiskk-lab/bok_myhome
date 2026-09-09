@@ -10,10 +10,10 @@ async function getLocation(slug: string) {
   return prisma.location.findUnique({ where: { slug } });
 }
 
-export async function generateStaticParams() {
-  const locations = await prisma.location.findMany({ select: { slug: true } });
-  return locations.map((l) => ({ locality: l.slug }));
-}
+// Rendered on demand rather than pre-generated at build time — avoids
+// requiring database access during the build step, and location listings
+// (property counts) can change without a redeploy.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
