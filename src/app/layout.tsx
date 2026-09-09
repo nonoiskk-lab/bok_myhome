@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileStickyBar } from "@/components/layout/MobileStickyBar";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 import { COMPANY } from "@/lib/constants";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1 pb-16 md:pb-0">{children}</main>
         <Footer />
         <MobileStickyBar />
+        <ChatWidget />
       </body>
     </html>
   );
