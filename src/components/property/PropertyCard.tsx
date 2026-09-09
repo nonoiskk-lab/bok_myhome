@@ -30,7 +30,7 @@ export function PropertyCard({ property }: { property: PropertyCardData }) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-navy-950/8 bg-white shadow-sm transition-shadow hover:shadow-lg">
       <div className="relative aspect-[4/3] overflow-hidden">
-        <Link href={`/properties/${property.slug}`} aria-label={property.title}>
+        <Link href={`/properties/${property.slug}`} aria-label={property.title} className="relative block h-full w-full">
           {cover ? (
             <Image
               src={cover.url}

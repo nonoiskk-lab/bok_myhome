@@ -70,9 +70,6 @@ export default function LoginPage() {
             Register
           </Link>
         </p>
-        <p className="mt-2 text-center text-xs text-slate-400">
-          Admin demo: admin@bokmyhome.com / Admin@123
-        </p>
       </div>
     </div>
   );
