@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Phone, MessageCircle } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { LeadStatusSelect } from "@/components/admin/LeadStatusSelect";
+import { LeadSyncStatus } from "@/components/admin/LeadSyncStatus";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { toWhatsAppPhone } from "@/lib/format";
 import { formatDistanceToNow } from "date-fns";
@@ -29,6 +30,7 @@ export default async function AdminLeadsPage() {
               <th className="p-4">Source</th>
               <th className="p-4">Received</th>
               <th className="p-4">Status</th>
+              <th className="p-4">Sync</th>
               <th className="p-4">Contact</th>
             </tr>
           </thead>
@@ -54,6 +56,13 @@ export default async function AdminLeadsPage() {
                 </td>
                 <td className="p-4">
                   <LeadStatusSelect id={lead.id} status={lead.status} />
+                </td>
+                <td className="p-4">
+                  <LeadSyncStatus
+                    id={lead.id}
+                    googleSheetStatus={lead.googleSheetStatus}
+                    whatsappStatus={lead.whatsappStatus}
+                  />
                 </td>
                 <td className="p-4">
                   <div className="flex gap-2">
@@ -82,7 +91,7 @@ export default async function AdminLeadsPage() {
             ))}
             {leads.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-sm text-slate-500">
+                <td colSpan={7} className="p-8 text-center text-sm text-slate-500">
                   No leads yet.
                 </td>
               </tr>

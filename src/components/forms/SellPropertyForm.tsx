@@ -15,7 +15,7 @@ const schema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^[0-9+\-\s()]{7,15}$/, "Please enter a valid phone number"),
+    .regex(/^(\+?91[\-\s]?)?[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number"),
   email: z.string().trim().email("Please enter a valid email").optional().or(z.literal("")),
   listingIntent: z.enum(["SELL", "RENT"]),
   propertyType: z.enum(PROPERTY_TYPES),

@@ -197,6 +197,14 @@ model Lead {
   nextFollowUp           DateTime?
   notes                  LeadNote[]
 
+  // External sync status — Supabase is the source of truth for a lead;
+  // Google Sheets and WhatsApp are best-effort sync destinations that must
+  // never cause a lead to be lost even if one or both fail.
+  googleSheetStatus String   @default("PENDING") // PENDING | SUCCESS | FAILED | NOT_CONFIGURED
+  whatsappStatus    String   @default("PENDING") // PENDING | SUCCESS | FAILED | NOT_CONFIGURED
+  syncAttempts      Int      @default(0)
+  lastSyncAt        DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

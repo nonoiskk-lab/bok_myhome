@@ -1,18 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/format";
 import { PROPERTY_TYPES } from "@/lib/constants";
+import { normalizeIndianMobile } from "@/lib/phone";
+import { syncLead } from "@/lib/leads/sync";
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB per image, base64-encoded client-side
 const MAX_IMAGES = 5;
 
 const sellSchema = z.object({
   name: z.string().trim().min(2).max(100),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^[0-9+\-\s()]{7,15}$/),
+  phone: z.string().trim().min(1).max(20),
   email: z.string().trim().email().optional().or(z.literal("")),
   listingIntent: z.enum(["SELL", "RENT"]),
   propertyType: z.enum(PROPERTY_TYPES),
@@ -34,6 +33,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const data = parsed.data;
+  const phone = normalizeIndianMobile(data.phone);
+  if (!phone.valid) {
+    return NextResponse.json(
+      { error: { formErrors: [], fieldErrors: { phone: ["Please enter a valid 10-digit Indian mobile number"] } } },
+      { status: 400 }
+    );
+  }
 
   for (const img of data.images ?? []) {
     if (img.length > MAX_IMAGE_BYTES * 1.4) {
@@ -42,6 +48,19 @@ export async function POST(request: Request) {
     if (!img.startsWith("data:image/")) {
       return NextResponse.json({ error: "Invalid image format." }, { status: 400 });
     }
+  }
+
+  const recentDuplicate = await prisma.lead.findFirst({
+    where: {
+      phone: phone.digits,
+      source: "SELLER_SUBMISSION",
+      createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) },
+    },
+    orderBy: { createdAt: "desc" },
+    include: { property: { select: { propertyId: true } } },
+  });
+  if (recentDuplicate?.property) {
+    return NextResponse.json({ ok: true, propertyId: recentDuplicate.property.propertyId }, { status: 200 });
   }
 
   const localitySlug = slugify(data.locality);
@@ -80,10 +99,10 @@ export async function POST(request: Request) {
     },
   });
 
-  await prisma.lead.create({
+  const lead = await prisma.lead.create({
     data: {
       name: data.name,
-      phone: data.phone,
+      phone: phone.digits,
       email: data.email || undefined,
       message: `Seller submission for ${title} — expected price ₹${data.expectedPrice}.`,
       source: "SELLER_SUBMISSION",
@@ -91,6 +110,8 @@ export async function POST(request: Request) {
       propertyId: property.id,
     },
   });
+
+  after(() => syncLead(lead.id));
 
   return NextResponse.json({ ok: true, propertyId: property.propertyId }, { status: 201 });
 }

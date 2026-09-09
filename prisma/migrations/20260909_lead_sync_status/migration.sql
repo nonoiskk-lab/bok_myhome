@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Lead" ADD COLUMN     "googleSheetStatus" TEXT NOT NULL DEFAULT 'PENDING',
+ADD COLUMN     "lastSyncAt" TIMESTAMP(3),
+ADD COLUMN     "syncAttempts" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "whatsappStatus" TEXT NOT NULL DEFAULT 'PENDING';
+
