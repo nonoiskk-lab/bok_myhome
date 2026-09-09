@@ -11,13 +11,35 @@ import { useCallback, useSyncExternalStore } from "react";
 // is an external store, and this is the store's actual value at read time —
 // not state React owns — so subscribing is the correct primitive (and avoids
 // the "setState synchronously in an effect" anti-pattern).
+//
+// getSnapshot must return a referentially stable value when nothing changed —
+// JSON.parse allocates a new array on every call, which made React see a
+// "changed" snapshot on every render and re-render forever (React error #185,
+// crashing the tab). This cache returns the same array reference until the
+// underlying raw string actually changes.
+const snapshotCache = new Map<string, { raw: string | null; ids: string[] }>();
+
 function readIds(key: string): string[] {
+  let raw: string | null;
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    raw = window.localStorage.getItem(key);
   } catch {
-    return [];
+    raw = null;
   }
+
+  const cached = snapshotCache.get(key);
+  if (cached && cached.raw === raw) {
+    return cached.ids;
+  }
+
+  let ids: string[];
+  try {
+    ids = raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    ids = [];
+  }
+  snapshotCache.set(key, { raw, ids });
+  return ids;
 }
 
 function writeIds(key: string, ids: string[]) {
